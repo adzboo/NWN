@@ -23,6 +23,9 @@ import {
   Lock,
   Unlock,
   Eye,
+  EyeOff,
+  User,
+  LogOut,
   FileSpreadsheet
 } from 'lucide-react';
 import { RaceEvent, EventEntry, Member, RCMeetingResult, ClubSettings, RaceClass, EventSeries, MembershipTier } from '../types';
@@ -47,10 +50,18 @@ interface AdminPortalViewProps {
 }
 
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData }) => {
-  // Admin Authentication PIN (Simple committee PIN)
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default true for instant preview, can be toggled
-  const [pinInput, setPinInput] = useState('1234');
-  const [pinError, setPinError] = useState('');
+  // Admin Authentication (Username & Password)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('nwn_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   // Active Admin Sub-tab
   const [activeTab, setActiveTab] = useState<'events' | 'entries' | 'members' | 'results' | 'settings' | 'netlify'>('events');
@@ -60,6 +71,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+
+  // Delete Event Modal State (eliminating window.confirm which fails in iframes)
+  const [eventToDelete, setEventToDelete] = useState<RaceEvent | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [eventNotice, setEventNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // New Event Form State
   const [eventTitle, setEventTitle] = useState('');
@@ -142,6 +158,48 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
     }
   };
 
+  const handleOpenCreateEvent = () => {
+    setEditingEventId(null);
+    setEventTitle(`Summer Series 2026 - Round ${events.length + 1}`);
+    setEventSeries('Summer Series');
+    setEventRound(events.length + 1);
+    setEventDate(new Date().toISOString().split('T')[0]);
+    setEventGates('07:30');
+    setEventCloses('08:30');
+    setEventBriefing('08:45');
+    setEventStarts('09:00');
+    setEventLocation('North West Nitro Track, Mythop Rd, Blackpool FY4 4XN');
+    setEventClasses(['1/8 Nitro Buggy', '1/8 E-Buggy', '1/8 Truggy']);
+    setEventStandardFee(15);
+    setEventMemberFee(10);
+    setEventMaxEntries(90);
+    setEventDescription('Summer Series championship round. 3 rounds of qualifying heats and bump-up finals.');
+    setEventCashAccepted(true);
+    setEventOnlineAccepted(false);
+    setShowNewEventModal(true);
+  };
+
+  const handleOpenEditEvent = (evt: RaceEvent) => {
+    setEditingEventId(evt.id);
+    setEventTitle(evt.title);
+    setEventSeries(evt.series);
+    setEventRound(evt.roundNumber || 1);
+    setEventDate(evt.date);
+    setEventGates(evt.gatesOpen || '07:30');
+    setEventCloses(evt.bookingCloses || '08:30');
+    setEventBriefing(evt.driversBriefing || '08:45');
+    setEventStarts(evt.racingStarts || '09:00');
+    setEventLocation(evt.location || 'North West Nitro Track, Mythop Rd, Blackpool FY4 4XN');
+    setEventClasses(evt.classes && evt.classes.length > 0 ? evt.classes : ['1/8 Nitro Buggy', '1/8 E-Buggy', '1/8 Truggy']);
+    setEventStandardFee(evt.standardFee || 15);
+    setEventMemberFee(evt.memberFee || 10);
+    setEventMaxEntries(evt.maxEntries || 90);
+    setEventDescription(evt.description || '');
+    setEventCashAccepted(evt.cashAccepted ?? true);
+    setEventOnlineAccepted(evt.onlineAccepted ?? false);
+    setShowNewEventModal(true);
+  };
+
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -164,6 +222,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
           cashAccepted: eventCashAccepted,
           onlineAccepted: eventOnlineAccepted,
         });
+        setEventNotice({ type: 'success', message: `Event "${eventTitle}" updated successfully.` });
       } else {
         await createEvent({
           title: eventTitle,
@@ -183,24 +242,35 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
           cashAccepted: eventCashAccepted,
           onlineAccepted: eventOnlineAccepted,
         });
+        setEventNotice({ type: 'success', message: `New event "${eventTitle}" created successfully.` });
       }
       setShowNewEventModal(false);
       setEditingEventId(null);
       await loadAllData();
       onRefreshData();
+      setTimeout(() => setEventNotice(null), 4000);
     } catch (err) {
       console.error('Failed to save event:', err);
+      setEventNotice({ type: 'error', message: 'Failed to save event. Please check inputs and try again.' });
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this event from the calendar?')) return;
+  const handleConfirmDeleteEvent = async () => {
+    if (!eventToDelete) return;
+    setIsDeletingEvent(true);
+    const deletedTitle = eventToDelete.title;
     try {
-      await deleteEvent(id);
+      await deleteEvent(eventToDelete.id);
+      setEventToDelete(null);
+      setEventNotice({ type: 'success', message: `Event "${deletedTitle}" deleted permanently.` });
       await loadAllData();
       onRefreshData();
+      setTimeout(() => setEventNotice(null), 4000);
     } catch (err) {
       console.error('Failed to delete event:', err);
+      setEventNotice({ type: 'error', message: `Failed to delete event: ${String(err)}` });
+    } finally {
+      setIsDeletingEvent(false);
     }
   };
 
@@ -274,50 +344,115 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
     }
   };
 
-  // Authenticate PIN gate
+  const handleLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanUser = usernameInput.trim();
+    if (cleanUser.toLowerCase() === 'admin' && passwordInput === 'adzboo1986') {
+      try {
+        sessionStorage.setItem('nwn_admin_auth', 'true');
+      } catch {
+        // Ignore session storage errors
+      }
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError('Invalid username or password. Please try again.');
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      sessionStorage.removeItem('nwn_admin_auth');
+    } catch {
+      // Ignore
+    }
+    setIsAuthenticated(false);
+    setUsernameInput('');
+    setPasswordInput('');
+    setLoginError('');
+  };
+
+  // Authenticate gate (Username: Admin, Password: adzboo1986)
   if (!isAuthenticated) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl text-center space-y-6">
-        <div className="w-14 h-14 rounded-full bg-lime-400/20 text-lime-400 mx-auto flex items-center justify-center">
-          <Lock className="w-7 h-7" />
-        </div>
-        <div className="space-y-1">
+      <div className="max-w-md mx-auto my-16 p-8 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 rounded-full bg-lime-400/20 text-lime-400 mx-auto flex items-center justify-center">
+            <Lock className="w-7 h-7" />
+          </div>
           <h2 className="text-2xl font-racing font-bold text-white uppercase tracking-wide">
-            Club Committee Portal
+            Admin Portal Login
           </h2>
           <p className="text-xs text-neutral-400">
-            Authorized race officials and admin committee access only.
+            North West Nitro RC Club &bull; Race Officials &amp; Committee Access
           </p>
         </div>
 
-        {pinError && (
-          <div className="p-2.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-            {pinError}
+        {loginError && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{loginError}</span>
           </div>
         )}
 
-        <div className="space-y-3">
-          <input
-            type="password"
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value)}
-            placeholder="Enter Committee PIN (Default: 1234)"
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-center text-sm font-mono text-white focus:outline-none focus:border-lime-400"
-          />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-racing font-bold uppercase tracking-wider text-neutral-400">
+              Username
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
+                <User className="w-4 h-4" />
+              </div>
+              <input
+                id="admin-username-input"
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="Enter username"
+                autoComplete="username"
+                autoFocus
+                className="w-full bg-neutral-950 border border-neutral-800 focus:border-lime-400 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-neutral-600 focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 text-left">
+            <label className="block text-xs font-racing font-bold uppercase tracking-wider text-neutral-400">
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
+                <Lock className="w-4 h-4" />
+              </div>
+              <input
+                id="admin-password-input"
+                type={showPassword ? 'text' : 'password'}
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter password"
+                autoComplete="current-password"
+                className="w-full bg-neutral-950 border border-neutral-800 focus:border-lime-400 rounded-xl pl-10 pr-11 py-2.5 text-sm text-white placeholder-neutral-600 focus:outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-neutral-300 cursor-pointer"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
           <button
-            onClick={() => {
-              if (pinInput === '1234' || pinInput.length > 0) {
-                setIsAuthenticated(true);
-                setPinError('');
-              } else {
-                setPinError('Invalid PIN');
-              }
-            }}
-            className="w-full py-3 rounded-lg bg-lime-400 hover:bg-lime-300 text-neutral-950 font-racing font-bold text-sm tracking-wider uppercase cursor-pointer"
+            id="btn-admin-login"
+            type="submit"
+            className="w-full py-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-neutral-950 font-racing font-bold text-sm tracking-wider uppercase transition-all shadow-lg shadow-lime-400/20 cursor-pointer mt-2"
           >
-            Unlock Admin Portal
+            Sign In to Admin Portal
           </button>
-        </div>
+        </form>
       </div>
     );
   }
@@ -351,11 +486,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
             <span>Export Database JSON</span>
           </button>
           <button
-            onClick={() => setIsAuthenticated(false)}
-            className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800"
-            title="Lock Portal"
+            onClick={handleLogout}
+            id="btn-admin-logout"
+            className="px-3.5 py-2 rounded-lg bg-neutral-900 hover:bg-red-500/20 text-neutral-300 hover:text-red-400 border border-neutral-700 hover:border-red-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+            title="Log out of admin portal"
           >
-            <Lock className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
@@ -393,18 +530,33 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
       {/* TAB 1: Race Calendar Events Manager */}
       {activeTab === 'events' && (
         <div className="space-y-6">
+          {eventNotice && (
+            <div className={`p-4 rounded-xl border flex items-center gap-3 text-xs ${
+              eventNotice.type === 'success'
+                ? 'bg-lime-500/10 border-lime-500/30 text-lime-300'
+                : 'bg-red-500/10 border-red-500/30 text-red-300'
+            }`}>
+              {eventNotice.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-lime-400 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              )}
+              <span className="font-medium">{eventNotice.message}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-racing font-bold text-white uppercase">
-              Calendar Events ({events.length})
-            </h2>
+            <div>
+              <h2 className="text-xl font-racing font-bold text-white uppercase">
+                Calendar Events ({events.length})
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Manage championship rounds, dates, and driver booking fees.
+              </p>
+            </div>
             <button
               id="btn-add-race-event"
-              onClick={() => {
-                setEditingEventId(null);
-                setEventTitle('Summer Series 2026 - Round 7');
-                setEventDate('2026-09-13');
-                setShowNewEventModal(true);
-              }}
+              onClick={handleOpenCreateEvent}
               className="px-4 py-2 rounded-lg bg-lime-400 hover:bg-lime-300 text-neutral-950 font-racing font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               <Plus className="w-4 h-4" />
@@ -412,60 +564,147 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {events.map((evt) => (
-              <div
-                key={evt.id}
-                className="p-5 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3 flex flex-col justify-between"
+          {events.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-neutral-900 border border-neutral-800 space-y-4">
+              <div className="w-12 h-12 rounded-full bg-neutral-800 text-neutral-400 mx-auto flex items-center justify-center">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-racing font-bold text-lg text-white">No Calendar Events</h3>
+                <p className="text-xs text-neutral-400 max-w-md mx-auto">
+                  All previous events have been removed. Click below to add your official North West Nitro championship dates.
+                </p>
+              </div>
+              <button
+                onClick={handleOpenCreateEvent}
+                className="px-5 py-2.5 rounded-lg bg-lime-400 hover:bg-lime-300 text-neutral-950 font-racing font-bold text-xs uppercase tracking-wider cursor-pointer inline-flex items-center gap-2"
               >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="px-2 py-0.5 rounded bg-lime-400/20 text-lime-400 text-[11px] font-bold uppercase font-racing">
-                      {evt.series}
-                    </span>
+                <Plus className="w-4 h-4" />
+                <span>Create Calendar Event</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {events.map((evt) => (
+                <div
+                  key={evt.id}
+                  className="p-5 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3 flex flex-col justify-between hover:border-neutral-700 transition-colors"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="px-2 py-0.5 rounded bg-lime-400/20 text-lime-400 text-[11px] font-bold uppercase font-racing">
+                        {evt.series}
+                      </span>
+                      <span className="text-xs font-mono text-neutral-400">
+                        {evt.date}
+                      </span>
+                    </div>
+                    <h3 className="font-racing font-bold text-lg text-white">{evt.title}</h3>
+                    <p className="text-xs text-neutral-400 line-clamp-2">{evt.description}</p>
+                    
+                    <div className="flex flex-wrap gap-2 text-[11px] text-neutral-300 pt-1">
+                      <span className="px-2 py-0.5 rounded bg-neutral-950">Standard: £{evt.standardFee}</span>
+                      <span className="px-2 py-0.5 rounded bg-lime-400/10 text-lime-400">Member: £{evt.memberFee}</span>
+                      <span className="px-2 py-0.5 rounded bg-neutral-950">
+                        {evt.cashAccepted ? 'Cash on Day' : 'Cash Off'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-neutral-800 flex items-center justify-between">
                     <span className="text-xs font-mono text-neutral-400">
-                      {evt.date}
+                      {evt.entryCount || 0} / {evt.maxEntries} Booked
                     </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedEventId(evt.id);
+                          setActiveTab('entries');
+                          loadEntries(evt.id);
+                        }}
+                        className="px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium cursor-pointer"
+                      >
+                        View Entries
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditEvent(evt)}
+                        className="p-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white cursor-pointer"
+                        title="Edit event"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEventToDelete(evt)}
+                        className="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer"
+                        title="Delete event"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="font-racing font-bold text-lg text-white">{evt.title}</h3>
-                  <p className="text-xs text-neutral-400 line-clamp-2">{evt.description}</p>
-                  
-                  <div className="flex flex-wrap gap-2 text-[11px] text-neutral-300 pt-1">
-                    <span className="px-2 py-0.5 rounded bg-neutral-950">Standard: £{evt.standardFee}</span>
-                    <span className="px-2 py-0.5 rounded bg-lime-400/10 text-lime-400">Member: £{evt.memberFee}</span>
-                    <span className="px-2 py-0.5 rounded bg-neutral-950">
-                      {evt.cashAccepted ? 'Cash on Day' : 'Cash Off'}
-                    </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* In-App Delete Event Confirmation Modal */}
+          {eventToDelete && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 max-w-md w-full space-y-5 shadow-2xl">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 mx-auto flex items-center justify-center">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="font-racing font-bold text-xl text-white uppercase">
+                    Delete Race Event?
+                  </h3>
+                  <p className="text-xs text-neutral-300">
+                    Are you sure you want to permanently delete:
+                  </p>
+                  <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800 text-left">
+                    <p className="font-racing font-bold text-white text-sm">{eventToDelete.title}</p>
+                    <p className="text-xs text-lime-400 font-mono mt-0.5">Date: {eventToDelete.date}</p>
+                    <p className="text-xs text-neutral-400 mt-1">{eventToDelete.series}</p>
                   </div>
+                  <p className="text-xs text-neutral-400">
+                    This race event will be permanently deleted and will not be re-added.
+                  </p>
                 </div>
 
-                <div className="pt-3 border-t border-neutral-800 flex items-center justify-between">
-                  <span className="text-xs font-mono text-neutral-400">
-                    {evt.entryCount || 0} / {evt.maxEntries} Booked
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedEventId(evt.id);
-                        setActiveTab('entries');
-                        loadEntries(evt.id);
-                      }}
-                      className="px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium cursor-pointer"
-                    >
-                      View Entries
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(evt.id)}
-                      className="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 cursor-pointer"
-                      title="Delete event"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={isDeletingEvent}
+                    onClick={() => setEventToDelete(null)}
+                    className="flex-1 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-racing font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeletingEvent}
+                    onClick={handleConfirmDeleteEvent}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-racing font-bold text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isDeletingEvent ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        <span>Confirm Delete</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* New / Edit Event Modal */}
           {showNewEventModal && (

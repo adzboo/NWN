@@ -88,45 +88,6 @@ const initialEvents: RaceEvent[] = [
     description: 'The crowning event of the 2026 Summer Series! Annual championship trophy presentations at the end of the day, plus special raffles and driver BBQ.',
     cashAccepted: true,
     onlineAccepted: false,
-  },
-  {
-    id: 'evt-open-practice-1',
-    title: 'Track Open Practice & Test Day',
-    series: 'Open Practice & Track Day',
-    date: '2026-05-30',
-    gatesOpen: '09:00',
-    bookingCloses: '11:00',
-    driversBriefing: '09:30',
-    racingStarts: '10:00',
-    location: 'North West Nitro Track, Mythop Rd, Blackpool FY4 4XN',
-    classes: ['1/8 Nitro Buggy', '1/8 E-Buggy'],
-    standardFee: 10,
-    memberFee: 5,
-    maxEntries: 60,
-    status: 'open',
-    description: 'Open track practice day to test setups, tyre compounds, and engine tuning on our newly groomed jump faces and berms. AMB lap timing loop will be active.',
-    cashAccepted: true,
-    onlineAccepted: false,
-  },
-  {
-    id: 'evt-winter-rd1',
-    title: 'Winter Warm-Up Trophy Meeting 2026',
-    series: 'Winter Series',
-    roundNumber: 1,
-    date: '2026-10-18',
-    gatesOpen: '08:00',
-    bookingCloses: '09:00',
-    driversBriefing: '09:15',
-    racingStarts: '09:30',
-    location: 'North West Nitro Track, Mythop Rd, Blackpool FY4 4XN',
-    classes: ['1/8 Nitro Buggy', '1/8 E-Buggy'],
-    standardFee: 15,
-    memberFee: 10,
-    maxEntries: 80,
-    status: 'open',
-    description: 'Opening round of our renowned winter challenge. High-grip Off Road Circuit ensures fast, reliable racing whatever the Lancashire weather throws at us.',
-    cashAccepted: true,
-    onlineAccepted: false,
   }
 ];
 
@@ -467,10 +428,10 @@ class Database {
         const content = fs.readFileSync(DB_FILE, 'utf-8');
         const parsed = JSON.parse(content);
         this.data = {
-          events: parsed.events || initialEvents,
-          entries: parsed.entries || initialEntries,
-          members: parsed.members || initialMembers,
-          results: parsed.results || initialResults,
+          events: Array.isArray(parsed.events) ? parsed.events : initialEvents,
+          entries: Array.isArray(parsed.entries) ? parsed.entries : initialEntries,
+          members: Array.isArray(parsed.members) ? parsed.members : initialMembers,
+          results: Array.isArray(parsed.results) ? parsed.results : initialResults,
           settings: { ...initialSettings, ...(parsed.settings || {}) },
         };
       } else {
