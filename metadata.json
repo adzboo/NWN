@@ -1,0 +1,6 @@
+{
+  "name": "North West Nitro RC Club",
+  "description": "Official club platform for North West Nitro 1/8 Off-Road RC Racing in Blackpool, Lancashire. Race calendar, online event entries with member discounts, live RC-Results viewer, membership registration, and admin backend portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

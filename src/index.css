@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+  
+  h1, h2, h3, .font-heading, .font-racing {
+    font-family: 'Chakra Petch', system-ui, sans-serif;
+  }
+}
+
+/* Custom motorsport styling */
+.text-glow-lime {
+  text-shadow: 0 0 16px rgba(182, 240, 5, 0.45);
+}
+
+.box-glow-lime {
+  box-shadow: 0 0 25px -5px rgba(182, 240, 5, 0.25);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
