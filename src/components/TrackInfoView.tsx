@@ -23,7 +23,7 @@ export const TrackInfoView: React.FC<TrackInfoViewProps> = ({
           Blackpool Off-Road Race Circuit
         </h1>
         <p className="text-sm text-neutral-400 max-w-3xl mt-1">
-          Purpose-built all-weather astro-turf circuit located on Mythop Road, Blackpool. Host venue for BRCA regional and national off-road championship rounds.
+          Purpose-built Off Road Circuit located on Mythop Road, Blackpool. Host venue for regional and national off-road championship rounds.
         </p>
       </div>
 
@@ -40,7 +40,7 @@ export const TrackInfoView: React.FC<TrackInfoViewProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 p-4 rounded-xl bg-neutral-950/80 backdrop-blur-md border border-neutral-800 text-xs flex items-center justify-between">
             <div>
-              <span className="font-racing font-bold text-white uppercase text-sm block">Astroturf All-Weather Surface</span>
+              <span className="font-racing font-bold text-white uppercase text-sm block">Off Road Circuit</span>
               <span className="text-neutral-400">High-grip jumps, tabletop, banked berm, and washboard sections</span>
             </div>
             <span className="px-2.5 py-1 rounded bg-lime-400 text-neutral-950 font-racing font-bold uppercase text-[10px]">

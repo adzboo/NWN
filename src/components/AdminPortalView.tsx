@@ -368,7 +368,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
           { id: 'members', label: 'Membership & Number Allocator', icon: Users },
           { id: 'results', label: 'RC-Results Importer (Venue 34)', icon: Trophy },
           { id: 'settings', label: 'Payments & Club Settings', icon: Settings },
-          { id: 'netlify', label: 'Netlify & Database Guide', icon: Globe },
+          { id: 'netlify', label: 'Netlify & Native Storage', icon: Globe },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1022,21 +1022,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
         </div>
       )}
 
-      {/* TAB 6: Netlify & Database Setup Guide (USER REQUIREMENT) */}
+      {/* TAB 6: Netlify & Native Storage (USER REQUIREMENT) */}
       {activeTab === 'netlify' && (
         <div className="space-y-6">
           <div className="p-8 rounded-2xl bg-neutral-900 border border-lime-500/30 space-y-6">
             <div className="flex items-center gap-2 text-lime-400 text-xs font-bold uppercase tracking-wider font-racing">
               <Globe className="w-4 h-4" />
-              <span>Netlify Hosting & Database Architecture</span>
+              <span>Netlify Hosting & Native Blobs Storage</span>
             </div>
 
             <h3 className="font-racing font-bold text-2xl text-white uppercase">
-              How to Host This Website & Database on Netlify
+              Native Storage Directly Within Netlify (No External DB Needed)
             </h3>
 
             <p className="text-sm text-neutral-300 leading-relaxed">
-              We have fully architected and pre-configured your project for seamless hosting on <strong className="text-white">Netlify</strong>!
+              Your application is configured with <strong className="text-white">Netlify Blobs</strong> (<code className="text-lime-400 font-mono">@netlify/blobs</code>). All club data—race calendar rounds, driver entries, membership directory, and race results—is stored natively within Netlify with <strong>zero external databases required</strong>!
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
@@ -1044,7 +1044,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
               <div className="p-5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
                 <div className="flex items-center gap-2 text-white font-racing font-bold text-base">
                   <span className="w-6 h-6 rounded-full bg-lime-400 text-neutral-950 flex items-center justify-center text-xs">1</span>
-                  <span>Netlify Build & Deploy</span>
+                  <span>Netlify Build & Serverless API</span>
                 </div>
                 <p className="text-xs text-neutral-400 leading-relaxed">
                   Your project contains <code className="text-lime-400 font-mono">netlify.toml</code> and serverless functions in <code className="text-lime-400 font-mono">netlify/functions/api.ts</code>.
@@ -1059,13 +1059,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({ onRefreshData 
               <div className="p-5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
                 <div className="flex items-center gap-2 text-white font-racing font-bold text-base">
                   <span className="w-6 h-6 rounded-full bg-lime-400 text-neutral-950 flex items-center justify-center text-xs">2</span>
-                  <span>Database for Netlify</span>
+                  <span>Native Netlify Blobs Persistence</span>
                 </div>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Because Netlify serverless hosting is stateless, persistent databases that pair best with Netlify are:
-                  <br />• <strong>Supabase (PostgreSQL)</strong> — Free tier, instant connection.
-                  <br />• <strong>Firebase Firestore</strong> — Free tier, real-time database.
-                  <br />• <strong>Cloud Run / Render</strong> (if hosting the bundled Express container).
+                  • <strong>Zero 3rd-Party Signups:</strong> No Supabase, Firebase, or AWS accounts required.
+                  <br />• <strong>Automatic Provisioning:</strong> Netlify Blobs is automatically enabled on every Netlify site.
+                  <br />• <strong>Strong Consistency:</strong> Immediate real-time sync across all race bookings, driver entries, and committee updates.
                 </p>
               </div>
 

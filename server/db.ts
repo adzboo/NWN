@@ -45,7 +45,7 @@ const initialEvents: RaceEvent[] = [
     memberFee: 10,
     maxEntries: 90,
     status: 'open',
-    description: 'Round 4 of our premier Summer Championship. Full astroturf & multi-surface technical layout with elevated crossover jump, high-speed sweeper, and driver rostrum with covered pit bays. 3 rounds of qualifying followed by bump-up finals for all drivers.',
+    description: 'Round 4 of our premier Summer Championship. Off Road Circuit & multi-surface technical layout with elevated crossover jump, high-speed sweeper, and driver rostrum with covered pit bays. 3 rounds of qualifying followed by bump-up finals for all drivers.',
     cashAccepted: true,
     onlineAccepted: false,
   },
@@ -124,7 +124,7 @@ const initialEvents: RaceEvent[] = [
     memberFee: 10,
     maxEntries: 80,
     status: 'open',
-    description: 'Opening round of our renowned winter challenge. High-grip wet weather astroturf ensures fast, reliable racing whatever the Lancashire weather throws at us.',
+    description: 'Opening round of our renowned winter challenge. High-grip Off Road Circuit ensures fast, reliable racing whatever the Lancashire weather throws at us.',
     cashAccepted: true,
     onlineAccepted: false,
   }

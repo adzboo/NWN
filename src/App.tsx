@@ -247,7 +247,7 @@ export default function App() {
               </div>
 
               <p className="text-neutral-400 text-xs leading-relaxed max-w-sm">
-                Blackpool's premier 1/8 nitro and electric off-road RC motorsport facility. Astro-turf circuit, high-speed jumps, AMB MyLaps timing, and warm community racing since establishment.
+                Blackpool's premier 1/8 nitro and electric off-road RC motorsport facility. Off Road Circuit, high-speed jumps, AMB MyLaps timing, and warm community racing since establishment.
               </p>
 
               <div className="flex items-center gap-2 pt-1 text-[11px] text-neutral-500">

@@ -1,5 +1,5 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { db } from '../../server/db';
+import { netlifyBlobDb } from '../../server/netlifyBlobDb';
 import { parseOrGenerateMeetingResults } from '../../server/rcResultsImporter';
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
@@ -9,7 +9,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   };
 
@@ -20,83 +20,112 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   try {
     const body = event.body ? JSON.parse(event.body) : {};
 
-    // Routes
+    // Events routes
     if (path === '/events' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.getEvents()) };
+      const events = await netlifyBlobDb.getEvents();
+      return { statusCode: 200, headers, body: JSON.stringify(events) };
     }
 
     if (path.startsWith('/events/') && path.endsWith('/entries') && method === 'GET') {
       const parts = path.split('/');
       const eventId = parts[2];
-      return { statusCode: 200, headers, body: JSON.stringify(db.getEntries(eventId)) };
+      const entries = await netlifyBlobDb.getEntries(eventId);
+      return { statusCode: 200, headers, body: JSON.stringify(entries) };
     }
 
     if (path.startsWith('/events/') && path.endsWith('/entries') && method === 'POST') {
       const parts = path.split('/');
       const eventId = parts[2];
-      const entry = db.addEntry({ ...body, eventId });
+      const entry = await netlifyBlobDb.addEntry({ ...body, eventId });
       return { statusCode: 201, headers, body: JSON.stringify(entry) };
     }
 
+    if (path.startsWith('/events/') && method === 'PATCH') {
+      const id = path.split('/')[2];
+      const updated = await netlifyBlobDb.updateEvent(id, body);
+      return { statusCode: 200, headers, body: JSON.stringify(updated) };
+    }
+
+    if (path.startsWith('/events/') && method === 'DELETE') {
+      const id = path.split('/')[2];
+      const deleted = await netlifyBlobDb.deleteEvent(id);
+      return { statusCode: 200, headers, body: JSON.stringify({ success: deleted }) };
+    }
+
     if (path === '/events' && method === 'POST') {
-      const newEvent = db.addEvent(body);
+      const newEvent = await netlifyBlobDb.addEvent(body);
       return { statusCode: 201, headers, body: JSON.stringify(newEvent) };
     }
 
+    // Members routes
     if (path === '/members' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.getMembers()) };
+      const members = await netlifyBlobDb.getMembers();
+      return { statusCode: 200, headers, body: JSON.stringify(members) };
     }
 
     if (path === '/members/register' && method === 'POST') {
-      const member = db.addMember(body);
+      const member = await netlifyBlobDb.addMember(body);
       return { statusCode: 201, headers, body: JSON.stringify(member) };
     }
 
     if (path.startsWith('/members/') && path.endsWith('/assign-number') && method === 'PATCH') {
       const id = path.split('/')[2];
-      const updated = db.assignMembershipNumber(id, body.membershipNumber, body.status);
+      const updated = await netlifyBlobDb.assignMembershipNumber(id, body.membershipNumber, body.status);
+      return { statusCode: 200, headers, body: JSON.stringify(updated) };
+    }
+
+    if (path.startsWith('/members/') && method === 'PATCH') {
+      const id = path.split('/')[2];
+      const updated = await netlifyBlobDb.updateMember(id, body);
       return { statusCode: 200, headers, body: JSON.stringify(updated) };
     }
 
     if (path === '/members/verify' && method === 'POST') {
-      const member = db.verifyMember(body);
+      const member = await netlifyBlobDb.verifyMember(body);
       if (!member) {
         return { statusCode: 404, headers, body: JSON.stringify({ valid: false }) };
       }
       return { statusCode: 200, headers, body: JSON.stringify({ valid: true, member }) };
     }
 
+    // Results routes
     if (path === '/results' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.getResults()) };
+      const results = await netlifyBlobDb.getResults();
+      return { statusCode: 200, headers, body: JSON.stringify(results) };
     }
 
     if (path === '/results/recent' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.getRecentResults(3)) };
+      const recent = await netlifyBlobDb.getRecentResults(3);
+      return { statusCode: 200, headers, body: JSON.stringify(recent) };
     }
 
     if (path === '/results/import' && method === 'POST') {
-      const saved = db.importResult(
-        body.customData || parseOrGenerateMeetingResults(body.meetingName, body.date, body.sourceUrl)
-      );
+      const resultData = body.customData || parseOrGenerateMeetingResults(body.meetingName, body.date, body.sourceUrl);
+      const saved = await netlifyBlobDb.importResult(resultData);
       return { statusCode: 201, headers, body: JSON.stringify(saved) };
     }
 
+    // Settings routes
     if (path === '/settings' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.getSettings()) };
+      const settings = await netlifyBlobDb.getSettings();
+      return { statusCode: 200, headers, body: JSON.stringify(settings) };
     }
 
     if (path === '/settings' && method === 'PUT') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.updateSettings(body)) };
+      const updated = await netlifyBlobDb.updateSettings(body);
+      return { statusCode: 200, headers, body: JSON.stringify(updated) };
     }
 
+    // Database export (1-click backup)
     if (path === '/database/export' && method === 'GET') {
-      return { statusCode: 200, headers, body: JSON.stringify(db.exportData()) };
+      const data = await netlifyBlobDb.exportData();
+      return { statusCode: 200, headers, body: JSON.stringify(data) };
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ status: 'ok', serverless: true }),
+      body: JSON.stringify({ status: 'ok', storage: 'netlify-blobs' }),
     };
   } catch (err: any) {
     return {

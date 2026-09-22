@@ -56,7 +56,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </h1>
 
               <p className="text-base sm:text-lg text-neutral-300 max-w-2xl font-normal leading-relaxed">
-                Welcome to <strong className="text-white">North West Nitro</strong> — the premier dedicated 1/8 scale RC off-road racing facility in the North West. Featuring a fast technical astroturf circuit, high-speed jumps, covered pit bays, and computerized AMB/MyLaps timing.
+                Welcome to <strong className="text-white">North West Nitro</strong> — the premier dedicated 1/8 scale RC off-road racing facility in the North West. Featuring a fast technical Off Road Circuit, high-speed jumps, covered pit bays, and computerized AMB/MyLaps timing.
               </p>
 
               {/* Action Buttons */}
@@ -418,9 +418,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="w-10 h-10 rounded-lg bg-lime-400/10 flex items-center justify-center text-lime-400">
               <Sparkles className="w-5 h-5" />
             </div>
-            <h3 className="font-racing font-bold text-lg text-white">Full Astroturf Circuit</h3>
+            <h3 className="font-racing font-bold text-lg text-white">Off Road Circuit</h3>
             <p className="text-xs text-neutral-300 leading-relaxed">
-              Technical, high-traction astroturf surface with elevated crossover jumps, berms, and tabletop jump sequences designed for consistent all-weather 1/8 racing.
+              Technical, high-traction Off Road Circuit surface with elevated crossover jumps, berms, and tabletop jump sequences designed for consistent 1/8 racing.
             </p>
           </div>
 
